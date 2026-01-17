@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ace Attorney - Part 1</title>
+    <style>
+        body {
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 960px;
+            height: 640px; /* 3:2 Aspect Ratio approximation (GBA/DS) */
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+
+        /* Layers */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #background-layer {
+            background-size: cover;
+            background-position: center;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #character-layer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 0px; /* Adjust based on asset sizing */
+        }
+
+        #character-layer img {
+             /* Approximate scale for characters */
+             height: 100%; /* Or auto */
+             object-fit: contain;
+             /* Some animations might need absolute positioning if they jump */
+        }
+
+        #ui-layer {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 10px;
+        }
+
+        /* Textbox */
+        #textbox {
+            background-color: rgba(0, 0, 0, 0.6); /* Fallback */
+            /* In actual AA, it's a semi-transparent box with borders. */
+            background: rgba(0, 0, 0, 0.7);
+            border-top: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            margin: 0 10px 10px 10px;
+            height: 160px;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            position: relative;
+            display: none; /* Hidden by default */
+        }
+
+        #textbox.visible {
+            display: block;
+        }
+
+        #speaker-name {
+            position: absolute;
+            top: -24px;
+            left: 20px;
+            background-color: #0088ff; /* Default name box color? Usually blue or varying */
+            /* Actually in AA1 it's just text in a box usually top left of textbox */
+            background: linear-gradient(to right, #404040, #202020);
+            border: 2px solid #fff;
+            border-bottom: none;
+            color: #fff;
+            padding: 4px 15px;
+            font-size: 18px;
+            border-radius: 4px 4px 0 0;
+            font-weight: bold;
+            display: none; /* Only show if speaker exists */
+        }
+
+        #dialogue-text {
+            color: #fff;
+            font-size: 24px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        #dialogue-text.thought {
+            color: #55aaff; /* Blue for thoughts */
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background-color: transparent;
+            /* Blinking cursor at end? In AA it's a downward arrow */
+        }
+
+        #next-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            animation: bounce 1s infinite;
+            display: none;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        /* Intro Card */
+        #intro-card {
+            background-color: #000;
+            color: #00ff00; /* Green text */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 28px;
+            z-index: 100;
+        }
+
+        #start-overlay {
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="background-layer" class="layer"></div>
+    <div id="character-layer" class="layer">
+        <img id="character-sprite" src="" style="display:none">
+    </div>
+
+    <div id="ui-layer" class="layer">
+        <div id="textbox">
+            <div id="speaker-name">Phoenix</div>
+            <div id="dialogue-text"></div>
+            <div id="next-indicator"></div>
+        </div>
+    </div>
+
+    <div id="intro-card" class="layer" style="display:none;">
+        <div id="intro-text"></div>
+    </div>
+
+    <div id="start-overlay" class="layer">
+        Click to Start
+    </div>
+</div>
+
+<script>
+    // Placeholder for Assets and Script
+    window.ASSETS = {{ASSETS}};
+    window.SCRIPT = {{SCRIPT}};
+
+    const STATE = {
+        index: 0,
+        waitingForInput: false,
+        typing: false,
+        currentMusic: null,
+        currentCharacter: null, // {name, emotion}
+        currentSpeaker: null,
+        bgName: 'black',
+        introMode: false
+    };
+
+    const ELS = {
+        bg: document.getElementById('background-layer'),
+        charImg: document.getElementById('character-sprite'),
+        textbox: document.getElementById('textbox'),
+        namebox: document.getElementById('speaker-name'),
+        text: document.getElementById('dialogue-text'),
+        next: document.getElementById('next-indicator'),
+        intro: document.getElementById('intro-card'),
+        introText: document.getElementById('intro-text'),
+        startOverlay: document.getElementById('start-overlay')
+    };
+
+    // Sound Context
+    let audioCtx;
+    const soundCache = {};
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // Decoding base64 audio is tricky synchronously.
+    // Better to convert base64 to ArrayBuffer then decodeAudioData
+    function base64ToArrayBuffer(base64) {
+        const binaryString = window.atob(base64.split(',')[1] || base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    async function playSound(name, loop = false) {
+        if (!window.ASSETS[name]) return;
+
+        // Stop previous music if new one is music and we are playing it
+        // (Music handling is separate)
+
+        try {
+            if (!soundCache[name]) {
+                const buffer = base64ToArrayBuffer(window.ASSETS[name]);
+                soundCache[name] = await audioCtx.decodeAudioData(buffer);
+            }
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = soundCache[name];
+            source.loop = loop;
+            source.connect(audioCtx.destination);
+            source.start(0);
+            return source;
+        } catch (e) {
+            console.error("Audio error", e);
+        }
+    }
+
+    let musicSource = null;
+    async function playMusic(name) {
+        if (STATE.currentMusic === name && musicSource) return;
+
+        stopMusic();
+
+        if (!name || !window.ASSETS[name]) return;
+
+        STATE.currentMusic = name;
+        musicSource = await playSound(name, true);
+    }
+
+    function stopMusic() {
+        if (musicSource) {
+            musicSource.stop();
+            musicSource = null;
+        }
+        STATE.currentMusic = null;
+    }
+
+    // --- Renderer ---
+
+    function setBackground(name) {
+        if (name === 'black') {
+            ELS.bg.style.backgroundImage = 'none';
+            ELS.bg.style.backgroundColor = 'black';
+        } else if (window.ASSETS[name]) {
+            ELS.bg.style.backgroundImage = `url(${window.ASSETS[name]})`;
+            ELS.bg.style.backgroundColor = 'transparent';
+        }
+    }
+
+    function setCharacter(name, action) {
+        // name example: "Mia_Happy"
+        // action: "show" or "hide"
+
+        if (action === 'hide') {
+            ELS.charImg.style.display = 'none';
+            STATE.currentCharacter = null;
+            return;
+        }
+
+        // Check if asset exists
+        // Wait, we need to map "Mia_Happy" to ASSETS["Mia_Happy"] (static)
+        // and ASSETS["Mia_Happy_Talk"] (talking).
+
+        if (window.ASSETS[name]) {
+            ELS.charImg.src = window.ASSETS[name];
+            ELS.charImg.style.display = 'block';
+            STATE.currentCharacter = name;
+        }
+    }
+
+    function updateCharacterAnimation(isTalking) {
+        if (!STATE.currentCharacter) return;
+
+        // Logic:
+        // 1. Is the current visible character the one speaking?
+        //    (Checked in typeText)
+
+        // 2. If speaking, use _Talk variant. Else use base variant.
+        const baseName = STATE.currentCharacter;
+        // Assumption: baseName is something like "Mia_Happy"
+        // TalkName is "Mia_Happy_Talk"
+
+        const talkName = baseName + "_Talk";
+
+        if (isTalking && window.ASSETS[talkName]) {
+             if (ELS.charImg.src !== window.ASSETS[talkName])
+                ELS.charImg.src = window.ASSETS[talkName];
+        } else {
+             if (ELS.charImg.src !== window.ASSETS[baseName])
+                ELS.charImg.src = window.ASSETS[baseName];
+        }
+    }
+
+    // --- Text Engine ---
+
+    let typeInterval = null;
+
+    async function typeText(text, speaker, isThought) {
+        STATE.typing = true;
+        STATE.waitingForInput = false;
+        ELS.next.style.display = 'none';
+        ELS.text.textContent = '';
+        ELS.text.className = isThought ? 'thought' : '';
+
+        // Update Speaker Box
+        if (speaker) {
+            ELS.namebox.textContent = speaker;
+            ELS.namebox.style.display = 'block';
+        } else {
+            ELS.namebox.style.display = 'none';
+        }
+
+        // Determine Blip
+        let blipName = 'blip.wav'; // default
+        if (speaker === 'Mia') blipName = 'blip-female.wav';
+        // Note: Filenames in ASSETS keys might be full names or just bases.
+        // My builder script should key them by filename relative to folder or just filename?
+        // Let's assume keys are "blip-female.wav".
+
+        // Determine if character should animate
+        // Animate ONLY if:
+        // 1. Not a thought
+        // 2. Speaker matches the visible character (loosely)
+        //    e.g. Speaker "Mia", Visible "Mia_Happy".
+        //    e.g. Speaker "Butz", Visible "Butz_Cry".
+        //    e.g. Speaker "Phoenix" -> Visible "Mia" -> NO ANIMATION.
+
+        let shouldAnimate = !isThought;
+        if (shouldAnimate && STATE.currentCharacter) {
+            // Check if speaker name is in the current character asset name
+            if (!STATE.currentCharacter.includes(speaker)) {
+                // Special case: "???" might be Butz
+                if (speaker === "???" && (STATE.currentCharacter.includes("Butz"))) {
+                    // Allow animation
+                } else {
+                    shouldAnimate = false;
+                }
+            }
+        } else {
+            shouldAnimate = false; // No character visible or is thought
+        }
+
+        let i = 0;
+
+        // Pre-load audio?
+        // Just play on interval.
+
+        typeInterval = setInterval(() => {
+            if (i >= text.length) {
+                finishTyping(shouldAnimate);
+                return;
+            }
+
+            const char = text[i];
+            ELS.text.textContent += char;
+
+            // Play blip
+            if (char !== ' ') {
+                playSound(blipName);
+            }
+
+            // Update animation state
+            if (shouldAnimate) {
+                // Ideally, keep talking while typing.
+                updateCharacterAnimation(true);
+            }
+
+            i++;
+        }, 30); // Speed: 30ms per char (~30 chars/sec)
+    }
+
+    function finishTyping(wasAnimating) {
+        clearInterval(typeInterval);
+        typeInterval = null;
+        STATE.typing = false;
+        STATE.waitingForInput = true;
+        ELS.next.style.display = 'block';
+
+        // Stop talking animation
+        updateCharacterAnimation(false);
+    }
+
+    async function typeIntroCard(lines) {
+        STATE.typing = true;
+        STATE.introMode = true;
+        ELS.intro.style.display = 'flex';
+        ELS.textbox.style.display = 'none';
+        ELS.introText.innerHTML = '';
+
+        // Typewriter for intro
+        // "Dates and Times use blip-machine.wav"
+
+        let fullText = lines.join('<br>'); // We want to type HTML?
+        // Easier: Type line by line.
+
+        for (let line of lines) {
+            const lineDiv = document.createElement('div');
+            ELS.introText.appendChild(lineDiv);
+
+            for (let i=0; i<line.length; i++) {
+                lineDiv.textContent += line[i];
+                playSound('blip-machine.wav');
+                await new Promise(r => setTimeout(r, 50));
+            }
+            await new Promise(r => setTimeout(r, 500)); // Pause between lines
+        }
+
+        STATE.typing = false;
+        STATE.waitingForInput = true;
+    }
+
+    // --- Game Loop ---
+
+    async function nextStep() {
+        if (STATE.typing) {
+            // Instant finish logic?
+            // For now, ignore click while typing or maybe speed up?
+            return;
+        }
+
+        if (STATE.index >= window.SCRIPT.length) {
+            console.log("End of script");
+            return;
+        }
+
+        const event = window.SCRIPT[STATE.index];
+        STATE.index++;
+
+        console.log("Processing event:", event);
+
+        switch (event.type) {
+            case 'bg':
+                setBackground(event.name);
+                // Auto proceed
+                nextStep();
+                break;
+
+            case 'music':
+                if (event.action === 'play') playMusic(event.name);
+                else stopMusic();
+                nextStep();
+                break;
+
+            case 'character':
+                setCharacter(event.name, event.action);
+                nextStep();
+                break;
+
+            case 'dialogue':
+                ELS.intro.style.display = 'none';
+                ELS.textbox.style.display = 'block';
+                typeText(event.text, event.speaker, event.isThought);
+                break;
+
+            case 'intro_card':
+                typeIntroCard(event.lines);
+                break;
+        }
+    }
+
+    // Input Handling
+    document.body.addEventListener('click', () => {
+        if (ELS.startOverlay.style.display !== 'none') {
+            ELS.startOverlay.style.display = 'none';
+            initAudio();
+            nextStep();
+            return;
+        }
+
+        if (STATE.waitingForInput) {
+            if (STATE.introMode) {
+                 // Click to dismiss intro card and move on
+                 ELS.intro.style.display = 'none';
+                 STATE.introMode = false;
+                 nextStep();
+            } else {
+                 nextStep();
+            }
+        } else if (STATE.typing && typeInterval) {
+            // Instant finish
+            // (Simplified: just let it run for now to avoid complexity with animation states)
+        }
+    });
+
+</script>
+</body>
+</html>
