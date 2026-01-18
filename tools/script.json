@@ -140,9 +140,21 @@
   { "type": "dialogue", "speaker": "Phoenix", "text": "That and I owe him one. Which is why I took the case... to clear his name." },
   { "type": "dialogue", "speaker": "Phoenix", "text": "And that's just what I'm going to do!" },
   { "type": "intro_card", "lines": ["August 3, 10:00 AM", "District Court", "Courtroom No. 2"] },
+
   { "type": "view", "name": "gallery" },
-  { "type": "character", "name": "Gallery_Talk", "action": "show" },
-  { "type": "sfx", "name": "gallery.mp3" },
+  {
+      "type": "simultaneous",
+      "events": [
+          { "type": "character", "name": "Gallery_Talk", "action": "show" },
+          { "type": "character", "name": "Judge_Gallery", "action": "add" },
+          { "type": "character", "name": "Payne_Gallery", "action": "add" },
+          { "type": "character", "name": "Mia_Gallery", "action": "add" },
+          { "type": "character", "name": "Wright_Gallery", "action": "add" },
+          { "type": "character", "name": "Butz_Gallery", "action": "add" },
+          { "type": "sfx", "name": "gallery.mp3" }
+      ]
+  },
+  { "type": "wait", "time": 3.0 },
   { "type": "character", "name": "gavel", "action": "show" },
   { "type": "wait", "time": 0.2 },
   { "type": "sfx", "name": "gavel.mp3" },
@@ -210,6 +222,8 @@
   { "type": "view", "name": "counsel" },
   { "type": "dialogue", "speaker": "Mia", "text": "This is no laughing matter! You did pass the bar, didn't you?" },
   { "type": "view", "name": "judge" },
+  { "type": "character", "name": "Judge_Headshake", "action": "show" },
+  { "type": "wait", "time": 1.0 },
   { "type": "character", "name": "Judge_Negative_Stand", "action": "show" },
   { "type": "dialogue", "speaker": "Judge", "text": "Sorry, I couldn't hear your answer. I'll ask once more:" },
   { "type": "jump", "target": "q1" },
@@ -235,6 +249,8 @@
   { "type": "view", "name": "defense" },
   { "type": "dialogue", "speaker": "Phoenix", "text": "(I put my foot in it this time! I've got to relax!)", "isThought": true },
   { "type": "view", "name": "judge" },
+  { "type": "character", "name": "Judge_Headshake", "action": "show" },
+  { "type": "wait", "time": 1.0 },
   { "type": "character", "name": "Judge_Negative_Stand", "action": "show" },
   { "type": "dialogue", "speaker": "Judge", "text": "Sorry, I couldn't hear your answer. I'll ask once more:" },
   { "type": "jump", "target": "q1" },
