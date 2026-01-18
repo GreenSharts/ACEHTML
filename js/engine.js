@@ -4,14 +4,14 @@ const STATE = {
     waitingForInput: false,
     typing: false,
     currentMusic: null,
+    currentCharacter: null, // {name, baseName}
     bgName: 'black',
     introMode: false,
     labels: {},
     isAutoAdvancing: false,
     videoError: false,
     videoStartTime: 0,
-    // Track loaded characters to manage "add" vs "show"
-    activeCharacters: [] // Array of { name, element }
+    activeCharacters: []
 };
 
 const ELS = {
@@ -44,7 +44,7 @@ async function preloadAssets() {
                 const img = new Image();
                 img.src = path;
                 img.onload = () => resolve();
-                img.onerror = () => resolve(); // proceed even if fail
+                img.onerror = () => resolve();
                 imageCache[key] = img;
             });
             promises.push(p);
@@ -74,11 +74,15 @@ async function playSound(name, loop = false, vol = 1.0) {
          name = 'blip.wav';
     }
 
-    if (!window.ASSETS[name]) return null;
+    if (!window.ASSETS[name]) {
+        console.warn("Sound asset not found:", name);
+        return null;
+    }
 
     try {
         if (!soundCache[name]) {
             const response = await fetch(window.ASSETS[name]);
+            if (!response.ok) throw new Error("Fetch failed");
             const arrayBuffer = await response.arrayBuffer();
             soundCache[name] = await audioCtx.decodeAudioData(arrayBuffer);
         }
@@ -96,18 +100,12 @@ async function playSound(name, loop = false, vol = 1.0) {
         source.start(0);
         return { source, gain: gainNode };
     } catch (e) {
-        console.error("Audio error", e);
+        console.error("Audio error for", name, e);
         return null;
     }
 }
 
 async function playMusic(name) {
-    // If name contains path separators, strip them to match keys if needed
-    // But script.json uses "Trial.ogg". assets.js keys are filenames.
-    // If script says "Music/Trial.ogg", we need to match key.
-    // Our mapper uses filenames as keys.
-
-    // Normalize key
     const key = name.split('/').pop();
 
     if (STATE.currentMusic === key && musicSource) {
@@ -149,7 +147,7 @@ function resumeMusic() {
 function playBlip(speaker) {
     let blipName = 'blip.wav';
     if (speaker === 'Mia') blipName = 'blip-female.wav';
-    // Check availability
+
     if (!window.ASSETS[blipName]) blipName = 'blip.wav';
 
     playSound(blipName, false, 0.8);
@@ -158,6 +156,7 @@ function playBlip(speaker) {
 // --- Renderer ---
 
 function setBackground(name) {
+    console.log("Setting BG:", name);
     if (name === 'black') {
         ELS.bg.style.backgroundImage = 'none';
         ELS.bg.style.backgroundColor = 'black';
@@ -165,25 +164,29 @@ function setBackground(name) {
     } else if (window.ASSETS[name]) {
         ELS.bg.style.backgroundImage = `url(${window.ASSETS[name]})`;
         ELS.bg.style.backgroundColor = 'transparent';
+    } else {
+        console.error("Background asset missing:", name);
     }
 }
 
 function setView(viewName) {
+    console.log("Setting View:", viewName);
     const views = {
         'gallery': { bg: 'Gallery', desk: null },
-        'judge': { bg: 'Judge', desk: 'Judge_Desk.png' },
-        'defense': { bg: 'Defense', desk: 'Defense_Desk.png' },
-        'prosecution': { bg: 'Prosecution', desk: 'Prosecution_Desk.png' },
-        'witness': { bg: 'Witness', desk: 'Witness_Desk.png' },
+        'judge': { bg: 'Judge', desk: 'Judge_Desk' }, // Removed .png assumption, use key
+        'defense': { bg: 'Defense', desk: 'Defense_Desk' },
+        'prosecution': { bg: 'Prosecution', desk: 'Prosecution_Desk' },
+        'witness': { bg: 'Witness', desk: 'Witness_Desk' },
         'counsel': { bg: 'Defense_Counsel', desk: null }
     };
 
     const v = views[viewName];
-    if (!v) return;
+    if (!v) {
+        console.error("View not found:", viewName);
+        return;
+    }
 
-    // Clear all characters on view change
     clearCharacters();
-
     setBackground(v.bg);
 
     if (v.desk && window.ASSETS[v.desk]) {
@@ -199,11 +202,10 @@ function clearCharacters() {
 }
 
 function setCharacter(name, action) {
-    // action: "show" (replace all), "add" (append), "hide" (remove specific or all?)
+    console.log("Character:", name, action);
 
     if (action === 'hide') {
         if (name) {
-             // Remove specific
              const idx = STATE.activeCharacters.findIndex(c => c.name === name);
              if (idx !== -1) {
                  STATE.activeCharacters[idx].element.remove();
@@ -224,94 +226,25 @@ function setCharacter(name, action) {
         clearCharacters();
     }
 
-    // Check if already exists?
-    // If "add", we might be adding a duplicate, which is allowed for crowds?
-    // Usually for AA, "add" implies unique actors.
-
     const img = document.createElement('img');
     img.src = window.ASSETS[name];
     img.style.position = 'absolute';
     img.style.bottom = '0';
-    // Center it horizontally by default?
-    // Or stick to standard flow?
-    // If we use absolute, we need to center it.
     img.style.left = '50%';
     img.style.transform = 'translateX(-50%)';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
 
+    // For Gallery, we might need specific positioning if provided?
+    // Current script just adds them. Assuming images are pre-positioned canvas size or centered.
+    // If multiple characters are added, they stack centered.
+
     ELS.charLayer.appendChild(img);
     STATE.activeCharacters.push({ name: name, element: img });
 }
 
-function updateCharacterAnimation(isTalking) {
-    // Update ALL active characters?
-    // Usually only the speaker talks.
-    // We don't know WHICH one is the speaker easily without mapping "Phoenix" -> "Wright_Stand".
-    // For now, iterate all active characters.
-
-    STATE.activeCharacters.forEach(char => {
-        const baseName = char.name;
-        // Heuristic: remove _Talk suffix if present
-        let base = baseName;
-        if (base.endsWith('_Talk')) {
-            base = base.substring(0, base.length - 5);
-        } else if (base.endsWith('_Stand')) {
-             // Maybe? "Wright_Stand" -> "Wright_Stand_Talk"
-             // "Wright_Cornered" -> "Wright_Cornered_Talk"
-        }
-
-        // Try to construct talk name
-        // If current is X, talk is X_Talk (if X doesn't end in Talk)
-        // If current is X_Talk, talk is X_Talk
-
-        // Actually, we need to switch betwen Base and Base_Talk.
-
-        // If char.name (current asset) is "Mia_Stand" -> Talk is "Mia_Stand_Talk"
-
-        let talkName = base + "_Talk";
-        // Special case handling if naming convention varies
-        // e.g. "Judge_Stand" -> "Judge_Stand_Talk"
-
-        // If we are talking, switch to Talk asset if exists
-        // If not talking, switch to Base asset
-
-        let target = isTalking ? talkName : base;
-
-        // If we don't have the target asset, do nothing
-        if (!window.ASSETS[target]) {
-             // Maybe base was already the talk variant?
-             // If isTalking is false, we want the non-talk variant.
-             // If base ends in _Talk, strip it.
-             if (!isTalking && baseName.endsWith('_Talk')) {
-                 target = baseName.substring(0, baseName.length - 5);
-             } else {
-                 return;
-             }
-        }
-
-        // Only update if changed
-        // Use src check is unreliable if full path differs.
-        // Use stored name check.
-
-        // We need to update the char object in array too
-
-        // Filter: Only animate characters that match the current speaker?
-        // We don't have speaker info here easily passed down.
-        // Let's assume the ENGINE manages "who is speaking" via setCharacter updates?
-        // NO, the engine just sends "isTalking" true/false during typing.
-
-        // Issue: If Phoenix and Mia are on screen, and Phoenix talks, Mia shouldn't move mouth.
-        // We need to know who is talking.
-        // `typeText` knows the speaker name.
-        // We can pass `speakerName` to `updateCharacterAnimation`.
-
-    });
-}
-
 function updateSpeakerAnimation(speaker, isTalking) {
      STATE.activeCharacters.forEach((char, index) => {
-        // Check match
         const charName = char.name.toLowerCase();
         const speakName = speaker.toLowerCase();
 
@@ -322,24 +255,19 @@ function updateSpeakerAnimation(speaker, isTalking) {
         if (speakName === 'phoenix' && (charName.includes('wright') || charName.includes('defense'))) match = true;
         if (speakName === 'judge' && charName.includes('judge')) match = true;
         if (speakName === 'payne' && charName.includes('payne')) match = true;
+        if (speakName === 'mia' && charName.includes('mia')) match = true;
 
-        if (!match) return; // Don't animate this character
+        if (!match) return;
 
-        // Calculate Target Asset
         let base = char.name;
         if (base.endsWith('_Talk')) {
             base = base.substring(0, base.length - 5);
         }
 
-        // Assume convention: X -> X_Talk
-        // If currently X, and talk=true, become X_Talk
-        // If currently X_Talk, and talk=false, become X
-
         let target = isTalking ? (base + "_Talk") : base;
 
         if (window.ASSETS[target] && char.name !== target) {
             char.element.src = window.ASSETS[target];
-            // Update our state record
             STATE.activeCharacters[index].name = target;
         }
      });
@@ -393,7 +321,6 @@ function finishTyping(speaker, wasAnimating, autoAdvance) {
     typeInterval = null;
     STATE.typing = false;
 
-    // Stop talking
     updateSpeakerAnimation(speaker, false);
 
     if (autoAdvance) {
@@ -410,16 +337,13 @@ function playVideo(name) {
     if (!window.ASSETS[name]) return;
 
     ELS.videoContainer.style.display = 'block';
-    ELS.videoContainer.style.zIndex = 0; // Ensure visible (BG is 1, so wait... BG covers it?)
-    // BG z-index is 1. Video z-index is 0.
-    // If BG is 'black' or has image, it covers video.
-    // We must hide BG.
-    ELS.bg.style.display = 'none';
-
     ELS.video.src = window.ASSETS[name];
     ELS.video.currentTime = 0;
 
     STATE.videoError = false;
+
+    // Explicitly hide BG layer to ensure video visibility
+    ELS.bg.style.display = 'none';
 
     ELS.video.play().then(() => {
         setTimeout(() => {
@@ -455,6 +379,9 @@ function waitForVideoTime(time) {
 
 // --- Sequence Logic (Cutscene A) ---
 async function playSequence(frames, fps, keepLast) {
+    // Ensure BG is visible for sequence
+    ELS.bg.style.display = 'block';
+
     return new Promise(resolve => {
         let idx = 0;
         const delay = 1000 / fps;
@@ -462,7 +389,7 @@ async function playSequence(frames, fps, keepLast) {
         const intv = setInterval(() => {
             if (idx >= frames.length) {
                 clearInterval(intv);
-                if (!keepLast) ELS.charLayer.style.display = 'none'; // logic from before, maybe revisit?
+                if (!keepLast) ELS.charLayer.style.display = 'none';
                 resolve();
                 return;
             }
@@ -496,10 +423,6 @@ async function nextStep() {
     console.log("Event:", event);
 
     if (event.type === 'simultaneous') {
-        // For simultaneous events, we want to fire them all.
-        // If any are async (wait), do we wait for them?
-        // Usually simultaneous implies "start them all now".
-        // We will await them sequentially but if they are non-blocking actions they will appear simultaneous.
         for (let sub of event.events) {
             await processEvent(sub, true);
         }
@@ -513,11 +436,13 @@ async function nextStep() {
 async function processEvent(event, isSimultaneous) {
     switch (event.type) {
         case 'bg':
+            ELS.bg.style.display = 'block'; // Ensure visible
             setBackground(event.name);
             if (!isSimultaneous) nextStep();
             break;
 
         case 'view':
+            ELS.bg.style.display = 'block'; // Ensure visible
             setView(event.name);
             if (!isSimultaneous) nextStep();
             break;
@@ -543,8 +468,8 @@ async function processEvent(event, isSimultaneous) {
         case 'dialogue':
             ELS.textbox.style.display = 'block';
             ELS.videoContainer.style.zIndex = -1;
-            // If in intro mode, we might want video visible?
             if (STATE.introMode) {
+                // If intro, keep video visible
                 ELS.videoContainer.style.zIndex = 0;
                 ELS.bg.style.display = 'none';
             } else {
@@ -587,7 +512,7 @@ async function processEvent(event, isSimultaneous) {
             break;
 
         case 'sequence':
-            ELS.charLayer.innerHTML = ''; // clear chars
+            ELS.charLayer.innerHTML = '';
             await playSequence(event.frames, event.fps, event.keepLast);
             nextStep();
             break;
@@ -651,14 +576,13 @@ function showChoices(choices) {
     });
 }
 
-// Input Handling
 document.body.addEventListener('click', async (e) => {
     if (e.target.closest('#choice-overlay') || e.target.closest('.choice-btn')) return;
 
     if (ELS.startOverlay.style.display !== 'none') {
         ELS.startOverlay.style.display = 'none';
 
-        await preloadAssets(); // Preload here
+        await preloadAssets();
         initAudio();
         indexLabels();
         nextStep();
@@ -676,7 +600,6 @@ document.body.addEventListener('click', async (e) => {
         const event = window.SCRIPT[STATE.index - 1];
         ELS.text.textContent = event.text;
 
-        // Stop animation immediately
         updateSpeakerAnimation(event.speaker, false);
 
         finishTyping(event.speaker, false, event.auto_advance);
