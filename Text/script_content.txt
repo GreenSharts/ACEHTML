@@ -3,43 +3,40 @@
 MUSIC LOOPS
 File structure = NAME_EMOTION/STAND, NAME_EMOTION/STAND_TALK
 
-
 Every letter = 1 blip played. 20 letters in a sentence, 20 blips played. Text gets typed in like a visual novel.
 AUDIOSFX: Dates and Times use blip-machine.wav
-AUDIOSFX: Phoenix, Butz, Payne, Judge = blip.wav
+AUDIOSFX: Phoenix, Butz, Payne, Judge = blip.wav 
 Mia = blip-female.wav
-
-
+When a character is talking, load text, animation and sfx at same time unless otherwise
 
 
 Episode 1
 The First Turnabout
-________________
-
 
 [Black Screen]
 August 3, 9:47 AM
 District Court
 Defendant Lobby No. 2
 
+[Fade in Defense_Lobby] and [Play Defense_Lobby.ogg] At same time
 
-[Fade in Defense_Lobby]
-[Play Defense_Lobby.ogg]
+
 Phoenix:
 <(Boy am I nervous!)>
 Mia:
 <Wright!>
 [Fade in Mia_Stand]
 Phoenix:
-<Oh, h-hiya, Chief.>
+[Play lightbulb sfx] <Oh, h-hiya, Chief.>
+
 
 Mia:
-<Whew, I'm glad I made it on time.>  <Well, I have to say Phoenix, I'm impressed!>  [Load Mia_Happy]<Not everyone takes on a murder trial right off the bat like this.> <It says a lot about you... and your client as well.>
+<Whew, I'm glad I made it on time.>  <Well, I have to say Phoenix, I'm impressed!>  [Load Mia_Happy] <Not everyone takes on a murder trial right off the bat like this.> <It says a lot about you... and your client as well.>
 Phoenix:
 <Um... thanks.> <Actually, it's because I owe him a favor.>
 Mia:
-[Load Mia_Surprised]<A favor?> <You mean, you knew the defendant before this case?>
-Phoenix:
+[Play lightbulb sfx] [Load Mia_Surprised]<A favor?> <You mean, you knew the defendant before this case?>
+Phoenix: 
 <Yes.> <Actually, I kind of owe my current job to him.> <He's one of the reasons I became an attorney.>
 [Load Mia_Happy]
 Mia:
@@ -47,18 +44,20 @@ Mia:
 [Load Mia_Stand]
 Phoenix:
 <I want to help him out any way I can!> <I just... really want to help him. I owe him that much.>
+
+[LOAD MIA ANIMATIONS ??? TEXT, and PAUSE MUSIC AT SAME TIME]
 [Load Mia_Surprised]
 ???:
-<(It's over! My life, everything, it's all over!)>
+[Play supershock sfx]<(It's over! My life, everything, it's all over!)>
 Mia:
 <...> <Is that your client screaming over there?>
 [Load Mia_Stand]
 Phoenix:
-<Yeah... it's him.>
+<Yeah... it's him.> 
 ???:
-<(Death! Despair! Ohhhh!)>
+[Play supershock sfx]<(Death! Despair! Ohhhh!)> 
 [Load Mia_Surprised]
-<(I'm gonna do it, I'm gonna die!!!)>
+[Play supershock sfx]<(I'm gonna do it, I'm gonna die!!!)>
 Mia:
 <It sounds like he wants to die...>
 [Load Mia_Happy]
@@ -66,32 +65,128 @@ Phoenix:
 <Um, yeah. *sigh*>
 [Fade out Mia_Happy]
 [Fade in Butz_Cry]
+[Unpause Music]
 Butz:
-<Nick!!!>
+[Play realization sfx]<Nick!!!>
 Phoenix:
 <Hey. Hey there, Larry.>
 Butz:
-<Dude, I'm so guilty!! Tell them I'm guilty!!!>
+[Play supershock sfx]<Dude, I'm so guilty!! Tell them I'm guilty!!!> 
 [Load Butz_Thumbs]
-<Gimme the death sentence! I ain't afraid to die!
+[Play supershock sfx]<Gimme the death sentence! I ain't afraid to die!
 Phoenix:
-<What!? What's wrong, Larry?>
+<What!? What's wrong, Larry?> 
 [Load Butz_Cry]
 Butz:
-<Oh, it's all over... I... I'm finished. Finished!>  <I can't live in a world without her! I can't!>  <Who... who took her away from me, Nick? Who did this!?> <Aww, Nick, ya gotta tell me! Who took my baby away!?>
+<Oh, it's all over... I... I'm finished. Finished!>  <I can't live in a world without her! I can't!>  <Who... who took her away from me, Nick? Who did this!?> [Play supershock sfx] <Aww, Nick, ya gotta tell me! Who took my baby away!?> 
 Phoenix:
-<(Hmm... The person responsible for your girlfriend's death?)>
-  <(The newspapers say it was you...)>
+ <(Hmm... The person responsible for your girlfriend's death?)> 
+  <(The newspapers say it was you...)> 
 [Fade out Defense_Lobby]
 [Fade out Defense_Lobby.ogg]
-________________
+[Fade out Butz_Cry] ALL AT SAME TIME
+
+Phoenix:
+<My name is Phoenix Wright.> <Here's the story:> <My first case is a fairly simple one.> 
+[Fade in Cutscene A file 1, wait for it to be fully faded in, load 2,3,4,5,6,7,8] [It is an animation.each frame lasts .333 seconds. Text appears after frame 5. Animation finishes frame 8, stays on image]
+<A young woman was killed in her apartment.> 
+[Fade Out Cuscene A]
+<The guy they arrested was the unlucky sap dating her:> 
+[Fade in Butz_Thumbs]
+<Larry Butz... my best friend since grade school.>  <Our school had a saying: "When something smells, it's usually the Butz.">  
+[Load Butz_Cry]
+<In the 23 years I've known him, it's usually been true.> <He has a knack for getting himself in trouble.> <One thing I can say though: it's usually not his fault. He just has terrible luck.> 
+[Fade out Butz_Cry]
+<But I know better than anyone, that he's a good guy at heart.> <That and I owe him one. Which is why I took the case... to clear his name.>  <And that's just what I'm going to do!> 
+
+
+August 3, 10:00 AM
+District Court
+Courtroom No. 2
+
+AT SAME TIME LOAD
+[Load Gallery]
+[Load Gallery_Talk]
+[Load Judge_Gallery]
+[Load Payne_Gallery]
+[Load Mia_Gallery]
+[Load Wright_Gallery] (Put in front of Mia_Gallery)
+[Load Butz_Gallery]
+[Load sfx gallery]
+[When sfx gallery is done playing, load gavel.webp and play sfx gavel .2 seconds after loading gavel1.webp
+[Defense_Desk, Judge_Desk, Prosecution_Desk ALWAYS GO INFRONT OF CHARACTER]
+[When Judge is talking, Judge.jpg is background, Judge sprite is in front, Judge_Desk.png is on top.]
+[When Payne is talking, Prosecution.jpg is background, Payne sprite is in front, Prosecution_Desk.png is on top.]
+[When Wright is talking, Defense.jpg is background, Wright sprite is in front, Defense_Desk.png is on top.]
+[When Mia is talking, Defense_Counsel.jpg is background, Mia_Defense_Counsel sprite is in front
+[When Butz or Sahwit is talking, Witness.jpg is background, Butz or Sahwit sprite is in front, Witness_Desk.png is on top.]
+Judge:
+[Load Judge_Stand] [Play Music Trial.ogg at same time] <Court is now in session for the trial of Mr. Larry Butz.> 
+Payne:
+[Load Payne_Stand]<The prosecution is ready, Your Honor.>
+Phoenix:
+[Load Wright_Stand]<The, um, defense is ready, Your Honor.>
+Judge:
+[Load Judge_Negative_Stand]<Ahem.> <Mr. Wright?> <This is your first trial, is it not?>
+Phoenix:
+[Load Wright_Stand]<Y-Yes, Your Honor. I'm, um, a little nervous.>
+Judge:
+[Load Judge_Negative_Stand]<Your conduct during this trial will decide the fate of your client.>  <Murder is a serious charge. [Load Judge_Stand]  For your client's sake, I hope you can control your nerves.>
+Phoenix:
+[Load Wright_Stand]<Thank... thank you, Your Honor.>
+Judge:
+[Load Judge_Negative_Stand]<...> <Mr. Wright, given the circumstances...> <I think we should have a test to ascertain your readiness.>
+Phoenix:
+[Load Wright_Stand]<Yes, Your Honor.> [Load Wright_Cornered](Gulp... Hands shaking... Eyesight... fading...)
+Judge:
+[Load Judge_Negative_Stand]<The test will consist of a few simple questions. Answer them clearly and concisely.> <Please state the name of the defendant in this case.>
+
+OPTIONS:
+
+Phoenix Wright
 
 
 Phoenix:
-<My name is Phoenix Wright.> <Here's the story:> <My first case is a fairly simple one.> <A young woman was killed in her apartment.> <The guy they arrested was the unlucky sap dating her:>
-[Load Butz_Thumbs]
-<Larry Butz... my best friend since grade school.>  <Our school had a saying: "When something smells, it's usually the Butz.">
-[Load Butz_Cry]
-<In the 23 years I've known him, it's usually been true.> <He has a knack for getting himself in trouble.> <One thing I can say though: it's usually not his fault. He just has terrible luck.>
-[Fade out Butz_Cry]
-<But I know better than anyone, that he's a good guy at heart.> <That and I owe him one. Which is why I took the case... to clear his name.>  <And that's just what I'm going to do!>
+[Load Wright_Think_Stand]<Um... the defendant... is me... right?>
+Mia:
+[Play supershock sfx] [Load Mia_Defense_Counsel_Surprised] [at same time] <Wright! Have you completely lost your mind?> <Focus! The defendant is the person on trial! You're his lawyer!>
+Phoenix:
+<Um, er, eh? Oh yeah, right! Eh heh heh.>
+Mia:
+<This is no laughing matter! You did pass the bar, didn't you?>
+Judge:
+[Play Judge_Headshake till end] [Then Load Judge_Negative_Stand]<Sorry, I couldn't hear your answer. I'll ask once more:>
+Leads back to:
+"Please state the name of the defendant in this case."
+
+
+Larry Butz
+
+
+Leads to:
+"The defendant? Well, that's Larry Butz, Your Honor."
+
+
+Mia Fey
+
+
+Phoenix:
+[Load Wright_Think_Stand]<The, um, defendant? That's... er... Mia Fey?>
+Mia:
+[Play lightbulb sfx] [Load Mia_Defense_Counsel_Dull]<Wrong, Wright. Look, I have to leave.> <I have to go home. I'm... I'm expecting a delivery.>
+Phoenix:
+<Aw, c'mon Chief. There's no need to be going so soon, is there?>
+Mia:
+[Play supershock sfx][Load Mia_Defense_Counsel_Surprised] [at same time] <Listen, Wright!> <The defendant is the one on trial--your client!> 
+[Load Mia_Defense_Counsel_Dull] <I mean, that's about as basic as you can get!> 
+Phoenix:
+<(I put my foot in it this time! I've got to relax!)>
+Judge:
+[Play Judge_Headshake till end] [Then Load Judge_Negative_Stand]<Sorry, I couldn't hear your answer. I'll ask once more:> 
+Leads back to:
+"Please state the name of the defendant in this case."
+
+Phoenix:
+[Load Wright_Think_Stand]<The defendant? Well, that's Larry Butz, Your Honor.> 
+Judge:
+[Load Judge_Stand]Correct. Just keep your wits about you and you'll do fine. Next question:  [Load Judge_Negative_Stand]This is a murder trial. Tell me, what's the victim's name?
