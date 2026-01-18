@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ace Attorney - Part 1</title>
+    <style>
+        body {
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 960px;
+            height: 640px;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+
+        /* Layers */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #video-layer {
+            z-index: 0;
+            background: black;
+            display: none;
+        }
+
+        #video-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #background-layer {
+            z-index: 1;
+            background-size: cover;
+            background-position: center;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #character-layer {
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 0px;
+        }
+
+        #character-layer img {
+             height: 100%;
+             object-fit: contain;
+        }
+
+        #desk-layer {
+            z-index: 3;
+            background-size: cover;
+            background-position: bottom center;
+            background-repeat: no-repeat;
+        }
+
+        #ui-layer {
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 10px;
+        }
+
+        /* Textbox */
+        #textbox {
+            background-color: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
+            border-top: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            margin: 0 10px 10px 10px;
+            height: 160px;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            position: relative;
+            display: none;
+            pointer-events: auto; /* Allow clicking to advance */
+        }
+
+        #textbox.visible {
+            display: block;
+        }
+
+        #speaker-name {
+            position: absolute;
+            top: -24px;
+            left: 20px;
+            background: linear-gradient(to right, #404040, #202020);
+            border: 2px solid #fff;
+            border-bottom: none;
+            color: #fff;
+            padding: 4px 15px;
+            font-size: 18px;
+            border-radius: 4px 4px 0 0;
+            font-weight: bold;
+            display: none;
+        }
+
+        #dialogue-text {
+            color: #fff;
+            font-size: 24px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        #dialogue-text.thought {
+            color: #55aaff;
+        }
+
+        #next-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            animation: bounce 1s infinite;
+            display: none;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        /* Intro Card */
+        #intro-card {
+            background-color: #000;
+            color: #00ff00;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 28px;
+            z-index: 100;
+        }
+
+        /* Choices */
+        #choice-overlay {
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+            pointer-events: auto;
+        }
+
+        .choice-btn {
+            background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
+            border: 4px solid orange;
+            border-radius: 10px;
+            color: #000;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px 40px;
+            margin: 10px;
+            cursor: pointer;
+            width: 60%;
+            text-align: center;
+        }
+
+        .choice-btn:hover {
+            background: #fff;
+            border-color: #ffcc00;
+        }
+
+        #start-overlay {
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="video-layer" class="layer">
+        <video id="intro-video" playsinline></video>
+    </div>
+    <div id="background-layer" class="layer"></div>
+    <div id="character-layer" class="layer">
+        <img id="character-sprite" src="" style="display:none">
+    </div>
+    <div id="desk-layer" class="layer"></div>
+
+    <div id="ui-layer" class="layer">
+        <div id="textbox">
+            <div id="speaker-name">Phoenix</div>
+            <div id="dialogue-text"></div>
+            <div id="next-indicator"></div>
+        </div>
+    </div>
+
+    <div id="choice-overlay" class="layer"></div>
+
+    <div id="intro-card" class="layer" style="display:none;">
+        <div id="intro-text"></div>
+    </div>
+
+    <div id="start-overlay" class="layer">
+        Click to Start
+    </div>
+</div>
+
+<script src="js/assets.js"></script>
+<script src="js/script_data.js"></script>
+<script src="js/engine.js"></script>
+</body>
+</html>
