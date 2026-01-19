@@ -1,42 +1,54 @@
 from playwright.sync_api import sync_playwright
+import time
+import subprocess
+import os
 
 def run(playwright):
-    browser = playwright.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto("http://localhost:8080/AceAttorney_Part1.html")
+    # Start server on 8000
+    server = subprocess.Popen(["python3", "-m", "http.server", "8000"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(2)
 
-    # Wait for overlay
-    page.wait_for_selector("#start-overlay")
+    try:
+        browser = playwright.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.on("console", lambda msg: print(f"PAGE LOG: {msg.text}"))
 
-    # Click to start
-    page.click("#start-overlay")
+        # New entry point
+        page.goto("http://localhost:8000/index.html")
 
-    # Wait for intro card content
-    # "August 3, 9:47 AM"
-    page.wait_for_selector("#intro-text")
+        print("Started Verification")
 
-    # Wait a bit for typing to happen
-    # 3 lines of intro text.
-    page.wait_for_timeout(5000)
+        # Click Start
+        page.wait_for_selector("#start-overlay")
+        page.click("#start-overlay")
+        print("Clicked Start")
 
-    # Take screenshot of Intro
-    page.screenshot(path="verification_intro.png")
+        time.sleep(2)
 
-    # Click to advance (it might be waiting for input after typing)
-    page.click("body")
+        # Check video
+        video_time = page.evaluate("document.getElementById('intro-video').currentTime")
+        print(f"Video Time: {video_time}")
 
-    # Now BG fade in
-    page.wait_for_timeout(1000)
+        # Wait for textbox
+        page.wait_for_selector("#textbox", state="visible", timeout=10000)
+        print("Textbox Visible")
 
-    # Now Dialogue?
-    # Phoenix: (Boy am I nervous!)
-    # Wait for text
-    page.wait_for_selector("#textbox")
-    page.wait_for_timeout(2000)
+        content = page.text_content("#dialogue-text")
+        print(f"Text: {content}")
 
-    page.screenshot(path="verification_game.png")
+        if "gasp" in content:
+            print("SUCCESS: Text matches")
+        else:
+            print("FAILURE: Text mismatch")
 
-    browser.close()
+        page.screenshot(path="verification_final.png")
+
+    finally:
+        server.kill()
+        try:
+            browser.close()
+        except:
+            pass
 
 with sync_playwright() as playwright:
     run(playwright)
